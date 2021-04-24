@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html  lang="en">
+
+<head>
+ <title> 8051 Simulation </title>
+ 
+ <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/sim_8051.css"> 
+  
+ <!--  <link rel="stylesheet" href"css/codepress.css" > 
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script> -->
+  
+  <!-- Link bootstrap JS and Jquery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js"></script>
+  
+ <script src="js/uc.js"> </script>
+ <!-- <script src="js/codepress.js"> </script> -->
+ 
+ </head>
+ 
+ <body onload="init();">
+ 
+ <!-- Area for headers -->
+ <header>
+ <div class="container clearfix">
+ <div class ="p-3">
+ <h1> 8051 Simulation </h1>
+ <p> A simple online simulation for 8051 </p>
+ </div>
+ </div>
+ 
+ <!--
+<div class="row">
+<div class="col col-sm-2"> </div>
+<div  class ="col col-sm-8"> <h1> 8051 Microcontroller Simulation </h1> </div>
+<div class ="col col-sm-2"> </div>
+</div>
+ -->
+ 
+ <!-- <div class="container-fluid container-xl d-flex align-items-center justify-content-between"> 
+ <div class = "navbar navbar-expand-lg fixed-top navbar-dark bg-secondary " > 
+ 
+ <nav id="navbar" class="collapse navbar-collapse">
+ 
+ <ul class="navbar-nav"> 
+  <li class="nav-item" > <a class= "nav-link" href="#hero">Home</a></li>
+  </ul>
+  
+ </nav>
+ -->
+ 
+ </div>
+ </header>
+<!-- <div class="container-fluid  vertical-scrollable border-danger"> -->
+<main id="main" class="bg-light">
+ <div class ="row">
+  <div class=" col col-sm-8 bg-light">
+  
+  <!-- create the tab list -->
+  <!-- Code based from tutorial from w3 school -->
+  
+  
+  <ul class="nav nav-tabs p-2">
+  <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#spr_8051">SPF</a></li>
+  <li class="nav-item"><a class = "nav-link" data-toggle="tab" href="#IRAM" >I RAM</a></li>
+  <li class="nav-item"><a class ="nav-link" data-toggle="tab" href="#ERAM">E RAM</a></li>
+</ul>
+  
+ <div class="tab-content" style="height:300px">
+
+<!--<div class="tab-content" id="pills-tabContent"> -->
+  <div class="tab-pane container fade in show active" style="height:200px" id="spr_8051">
+  
+  <!-- end of register location -->       
+  </div>
+ <!-- </div>  Special Purpose Register layout -->
+ 
+  <div class="tab-pane container fade " style="height:200px" id="IRAM"> 
+  <!-- add table -->
+  
+  </div>
+  
+  <div class="tab-pane container  fade" id="ERAM" > 
+  <!-- External RAM --> 
+  
+  </div>
+
+  
+  </div> <!-- End of tabContent -->
+  </div>  <!-- End of First Column -->
+ <!-- <div class="col-sm-4"> LED Connections </div>  -->
+  <div class ="col col-sm-4" id="asm_text p-4 bg-info">
+  
+  <h5> Code Area </h5> 
+  <textarea rows="12" cols="20" id="asm_code"></textarea>
+<!--
+<textarea id="asm_code" class="codepress javascript linenumbers-on">
+   // your code here
+</textarea> 
+-->
+</div>
+ <!-- </div -->
+</div>
+
+<!-- Error Message -->
+
+<div class="row" >
+
+<div class="col p-4 bg-primary text-white ml-5 ml-lg-0" id="Error_msg" style="height:100px">   Error Message </div>
+</div>
+ 
+ <div class="row" style="align:center">
+ <div class="col col-sm-10 p-5">
+ <!-- input for the button -->
+ 
+ <button type="button" value="Step" class="btn btn-primary" onclick = "asm_exe.debugStart()" id="debugStart"> Debug </button>
+ <button type="button" class="btn  btn-primary" disabled id="debugNext" onClick="asm_exe.debugNext();">Next line </button>
+ <button type="button" class="btn  btn-primary" disabled onclick = "asm_exe.debugStop()" id="debugStop">Stop Debug</button>
+ <button type="button" value="run" class="btn btn-primary" id="run" onClick="asm_exe.run();"> Run </button> 
+ <button type="button" value="run" class="btn btn-primary" id="stop" disabled onClick="asm_exe.stop();"> Stop </button> 
+ <button type="button" class="btn btn-primary" id="reset" onClick="asm_exe.resetIRegister();"> Reset Register </button>
+ <button type="button" class="btn btn-primary" onclick="clear_asm_text()" > Clear Code </button>
+ </div>
+ 
+ </div>
+ </main>
+ 
+ <footer id="footer" class="footer">
+ <div class="container">
+      <div class="copyright">
+      Created by <span> <strong> P.C. Vijay Ganesh </strong></span>
+        <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/"><img alt="Creative Commons License" style="border-width:0" src="https://i.creativecommons.org/l/by-nc-sa/4.0/88x31.png" /></a><br />This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a>.  
+      </div>
+      </div>
+ 
+ <footer>
+ 
+ 
+ </html>
