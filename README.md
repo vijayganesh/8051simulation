@@ -1,10 +1,17 @@
 # 8051simulation
 Completed creating A simple interface
- The simulator will do mov direct, immediate and register commands as of now
+ The simulator will do
+ 1. mov
+ 2. Inc
+ 3. movx a,dptr
+ 4. jmp
+ 5. jdnz 
+
+Added New UI for front pages used boostrap 4.2 and html 5
  
  ToDo : 
-  UI recreate for header and footer
+  Work on textarea to highligh keywods 
   
   ASM: 
-   Add indirect and Index address modes 
+   Add DEC, xcng djz 
   
