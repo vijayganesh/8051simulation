@@ -74,6 +74,20 @@ function asm_execute()
      "movx @dptr,a",//done  movx @dptr,a 23
      "djnz r[0-7],[a-zA-Z0-9]+", // djnz rn,rel 24
      "djnz ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,[a-zA-Z0-9]+", // djnz direct,rel 25
+     "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,a", // mov direct,a 26
+     "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,r[0-7]", // mov direct,reg 27
+     "xch a,@r[0-7]",//XCH A, @Ri 28
+     "xch a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H",// XCH A, direct 29
+     "xch a,r[0-7]", // XCH A, Rn 30
+     "org ((0[a-fA-f][a-fA-F0-9]{3})|(([0-9][0-9a-fA-F]{3})))H", // org 0000h 31
+     // mov indirect instruction already done mov a,@r[01]
+     "mov @r[0-1],a", // mov @r0-1,a 32
+     "mov @r[0-1],#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // mov @r0-1 immediate 33
+     "mov @r[0-1],((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // mov @r[0-1] direct 34
+     "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,@r[0-1]", // mov direct,@r[0-1] 35
+     "movx a,@r[0-1]",// done movx a,@r[0-1] 36
+     "movx @r[0-1],a",//done  movx @r[0-1],a 37
+     "mov dptr,#((0[a-fA-f]([a-fA-F0-9]){1,3})|(([0-9][0-9a-fA-F]{1,3})))H",
      
      // Pending indirect address , dptr , setb, clr
     "add a,b",
@@ -450,6 +464,95 @@ this.execute = function ()
             
             break;
                    
+        case 26:
+            // mov direct,a 26
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] = this.IRAM[this.SPF["a"][1]];            
+            break;
+        case 27:
+            // mov direct,reg 27
+            
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            break;
+        case 28:
+             //XCH A,@Ri 28
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split("@");    
+            var temp1 = this.IRAM[this.SPF["a"][1]];
+            var temp2 = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            this.IRAM[this.SPF["a"][1]] = temp2;
+            this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = temp1;
+            // Update status word for priority
+            this.setPSWpriority();
+            
+     
+            break;
+        case 29:
+            // XCH A, direct 29
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var temp1 = this.IRAM[this.SPF["a"][1]];
+            var temp2 = this.IRAM[parseInt(operand[1].replace('\h',''),16)];
+            this.IRAM[this.SPF["a"][1]] = temp2;
+            this.IRAM[parseInt(operand[1].replace('\h',''),16)] = temp1;
+            // update status word for priority
+            this.setPSWpriority();
+            break;
+        case 30:
+            // XCH A, Rn 30
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var temp1 = this.IRAM[this.SPF["a"][1]];
+            var temp2 = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = temp1;
+            this.IRAM[this.SPF["a"][1]] = temp2;
+            // update status work for priority
+            this.setPSWpriority();
+            
+            break;
+            
+        case 31:
+            // org do nothing
+            break;
+            
+        case 32:
+            // mov @r0-1,a 32
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] = this.IRAM[this.SPF[operand[1]][1]] ;
+            
+            break;
+        case 33:
+            // mov @r0-1 immediate 33
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] =  parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            break;
+        case 34:
+            // mov @r[0-1] direct 34
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] =  this.IRAM[parseInt(operand[1].replace('\h',''),16)];
+            break;
+        case 35:
+            // mov direct,@r[0-1] 35
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] = this.IRAM[this.IRAM[parseInt(this.SPF[operand[1].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+            break;
+            
+        case 36:
+            //movx a,@r[0-1] 36
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             this.IRAM[this.SPF[operand[0]][1]] = this.ERAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+            
+            break;
+        case 37:
+            // movx @r[0-1],a 37
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.ERAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] = this.IRAM[this.SPF[operand[1]][1]];
+            break;
+        case 38:
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF["dpl"][1]] = parseInt(operand[1].replace('\#','').replace('\h',''),16) & 0x0FF;
+            this.IRAM[this.SPF["dph"][1]] = (parseInt(operand[1].replace('\#','').replace('\h',''),16) & 0xFF00)>>8;
+            
+            break;
             
             
         default: break;
@@ -458,7 +561,24 @@ this.execute = function ()
     
     
 }
-
+this.setPSWpriority = function ()
+{
+    var priority = 0;
+    var temp = this.IRAM[this.SPF["a"][1]]; // Acc value
+    
+    while(temp != 0)
+    {
+        priority = !priority;
+        temp = temp & (temp -1);
+    }
+    
+    var ps_t = this.IRAM[this.SPF["psw"][1]];
+    ps_t = ps_t | 0x01;
+    
+    //console.log("pri = "+priority+" and int value - "+( 0xFE | (priority?1:0))+" Acc = "+this.IRAM[this.SPF["a"][1]]);
+    console.log(ps_t & ( 0xFE | (priority?1:0)));
+    this.IRAM[this.SPF["psw"][1]] = ps_t & ( 0xFE | (priority?1:0)); 
+}
 this.getOpcode = function ()
 {
   var i = 0;
@@ -582,6 +702,8 @@ this.showSFR = function()
  values += "<tr> <td> R5 </td> <td> 0x"+this.IRAM[this.SPF["r5"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> R6 </td> <td> 0x"+this.IRAM[this.SPF["r6"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> R7 </td> <td> 0x"+this.IRAM[this.SPF["r7"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> DPL </td> <td> 0x"+this.IRAM[this.SPF["dpl"][1]].toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> DPH </td> <td> 0x"+this.IRAM[this.SPF["dph"][1]].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> PSW </td> <td> 0x"+this.IRAM[this.SPF["psw"][1]].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> PC</td> <td> 0x"+this.SPF["pc"].toString(this.radix)+"</td> </tr>";
  values += "</table></div>";
