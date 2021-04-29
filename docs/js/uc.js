@@ -743,7 +743,7 @@ this.showERAM = function ()
 
 this.getERAMvalue = function (address)
 {
- return  this.ERAM[parseInt(address,16)];
+ return  parseInt(this.ERAM[parseInt(address,16)],16); //this.ERAM[parseInt(address,16)];
 }
 
 this.updateERAMvalue = function(address,values)
