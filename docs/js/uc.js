@@ -764,7 +764,7 @@ this.update();
 
 function getERAMvalue()
 {
-  document.getElementById('exvalues').value =asm_exe.getERAMvalue(document.getElementById("eadrr_search").value).toString(16);
+  document.getElementById('exvalues').value =(asm_exe.getERAMvalue(document.getElementById("eadrr_search").value)).toString(16);
 }
 
 function updateERAMvalue()
