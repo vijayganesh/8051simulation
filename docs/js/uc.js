@@ -539,7 +539,7 @@ this.execute = function ()
         case 36:
             //movx a,@r[0-1] 36
              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-             this.IRAM[this.SPF[operand[0]][1]] = this.ERAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+             this.IRAM[this.SPF[operand[0]][1]] = this.ERAM[this.IRAM[parseInt(this.SPF[operand[1].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
             
             break;
         case 37:
