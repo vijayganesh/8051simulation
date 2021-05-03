@@ -15,7 +15,7 @@ $('.nav-tabs a').on('show.bs.tab', function(event){
     var x = $(event.target).text();         // active tab
    // var y = $(event.relatedTarget).text();  // previous tab
     asm_exe.setActiveScreen(x);
-   // console.log("The clicj is :"+x);
+    console.log("The clicj is :"+this.id);
   });
 
 });
@@ -87,7 +87,14 @@ function asm_execute()
      "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,@r[0-1]", // mov direct,@r[0-1] 35
      "movx a,@r[0-1]",// done movx a,@r[0-1] 36
      "movx @r[0-1],a",//done  movx @r[0-1],a 37
-     "mov dptr,#((0[a-fA-f]([a-fA-F0-9]){1,3})|(([0-9][0-9a-fA-F]{1,3})))H",
+     "mov dptr,#((0[a-fA-f]([a-fA-F0-9]){1,3})|(([0-9][0-9a-fA-F]{1,3})))H", //done 38
+     "push acc", // push acc 39
+     "push b", // push b 40
+     "push ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // push direct 41
+     "pop acc", // pop acc 42
+     "pop b", // pop b 43 
+     "pop ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // pop direct 44
+     "mov sp,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // sp #immediate 45
      
      // Pending indirect address , dptr , setb, clr
     "add a,b",
@@ -117,7 +124,8 @@ function asm_execute()
    "p2" :["p2",0xA0],
    "p3" :["p3",0xB0],
    "ip" :["ip",0xB8],
-   "pc" : 0
+   "pc" : 0,
+   "sp" : 0x07
   };
     
  this.line_code = asm_area.value.split("\n");
@@ -162,6 +170,7 @@ this.reset = function ()
  
  this.prefix = "0x";
  this.SPF["pc"]=0;
+ this.SPF["sp"] = 0x07;
  this.radix = 16;
  
  for(var i=0;i<256;i++)
@@ -539,7 +548,10 @@ this.execute = function ()
         case 36:
             //movx a,@r[0-1] 36
              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-             this.IRAM[this.SPF[operand[0]][1]] = this.ERAM[this.IRAM[parseInt(this.SPF[operand[1].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+             var temp = this.ERAM[this.IRAM[parseInt(this.SPF[operand[1].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+             this.IRAM[this.SPF[operand[0]][1]] = temp;
+             //console.log("Temp val = "+temp);
+             
             
             break;
         case 37:
@@ -553,13 +565,47 @@ this.execute = function ()
             this.IRAM[this.SPF["dph"][1]] = (parseInt(operand[1].replace('\#','').replace('\h',''),16) & 0xFF00)>>8;
             
             break;
-            
-            
+        case 39:
+            // push acc 39
+            this.SPF["sp"] = this.SPF["sp"] + 1;
+            this.IRAM[this.SPF["sp"]] = this.IRAM[this.SPF["a"][1]];
+            break;
+        case 40:
+            // push b 40
+            this.SPF["sp"] = this.SPF["sp"] + 1;
+            this.IRAM[this.SPF["sp"]] = this.IRAM[this.SPF["b"][1]];
+            break;
+        case 41:
+            // push direct 41
+            this.SPF["sp"] = this.SPF["sp"] + 1;
+            this.IRAM[this.SPF["sp"]] =  this.IRAM[parseInt(operand[1].replace('\h',''),16)];
+            break;
+        case 42:
+            // pop acc 42
+            this.IRAM[this.SPF["a"][1]] =   this.IRAM[this.SPF["sp"]];
+            this.SPF["sp"] = this.SPF["sp"] - 1;
+            break;
+        case 43:
+            // pop b 43 
+            this.IRAM[this.SPF["b"][1]] =  this.IRAM[this.SPF["sp"]];
+            this.SPF["sp"] = this.SPF["sp"] - 1;
+            break;
+        case 44:
+            // pop direct 44
+             this.IRAM[parseInt(operand[1].replace('\h',''),16)] =  this.IRAM[this.SPF["sp"]];
+            this.SPF["sp"] = this.SPF["sp"] - 1;
+            break;
+        case 45:
+            // sp #immediate
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.SPF["sp"] =  parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            break;
+                       
         default: break;
     }
     
-    
-    
+ // Set priority update always   
+ this.setPSWpriority();   
 }
 this.setPSWpriority = function ()
 {
@@ -706,6 +752,7 @@ this.showSFR = function()
  values += "<tr> <td> DPH </td> <td> 0x"+this.IRAM[this.SPF["dph"][1]].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> PSW </td> <td> 0x"+this.IRAM[this.SPF["psw"][1]].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> PC</td> <td> 0x"+this.SPF["pc"].toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> SP</td> <td> 0x"+this.SPF["sp"].toString(this.radix)+"</td> </tr>";
  values += "</table></div>";
  
  document.getElementById("spr_8051").innerHTML = values;
@@ -743,7 +790,7 @@ this.showERAM = function ()
 
 this.getERAMvalue = function (address)
 {
- return  parseInt(this.ERAM[parseInt(address,16)],16); //this.ERAM[parseInt(address,16)];
+ return  parseInt(this.ERAM[parseInt(address,16)],16);
 }
 
 this.updateERAMvalue = function(address,values)
@@ -764,7 +811,7 @@ this.update();
 
 function getERAMvalue()
 {
-  document.getElementById('exvalues').value =(asm_exe.getERAMvalue(document.getElementById("eadrr_search").value)).toString(16);
+  document.getElementById('exvalues').value =asm_exe.getERAMvalue(document.getElementById("eadrr_search").value);
 }
 
 function updateERAMvalue()
