@@ -488,9 +488,9 @@ this.execute = function ()
              //XCH A,@Ri 28
             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split("@");    
             var temp1 = this.IRAM[this.SPF["a"][1]];
-            var temp2 = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            var temp2 = this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]];
             this.IRAM[this.SPF["a"][1]] = temp2;
-            this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = temp1;
+            this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]] = temp1;
             // Update status word for priority
             this.setPSWpriority();
             
@@ -577,6 +577,7 @@ this.execute = function ()
             break;
         case 41:
             // push direct 41
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "));
             this.SPF["sp"] = this.SPF["sp"] + 1;
             this.IRAM[this.SPF["sp"]] =  this.IRAM[parseInt(operand[1].replace('\h',''),16)];
             break;
@@ -592,6 +593,7 @@ this.execute = function ()
             break;
         case 44:
             // pop direct 44
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "));
              this.IRAM[parseInt(operand[1].replace('\h',''),16)] =  this.IRAM[this.SPF["sp"]];
             this.SPF["sp"] = this.SPF["sp"] - 1;
             break;
