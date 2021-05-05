@@ -95,6 +95,7 @@ function asm_execute()
      "pop b", // pop b 43 
      "pop ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // pop direct 44
      "mov sp,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // sp #immediate 45
+     "xchd a,@r[0|1]", //XCHD A, @R1 46
      
      // Pending indirect address , dptr , setb, clr
     "add a,b",
@@ -492,7 +493,7 @@ this.execute = function ()
             this.IRAM[this.SPF["a"][1]] = temp2;
             this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]] = temp1;
             // Update status word for priority
-            this.setPSWpriority();
+            //this.setPSWpriority();
             
      
             break;
@@ -504,7 +505,7 @@ this.execute = function ()
             this.IRAM[this.SPF["a"][1]] = temp2;
             this.IRAM[parseInt(operand[1].replace('\h',''),16)] = temp1;
             // update status word for priority
-            this.setPSWpriority();
+            //this.setPSWpriority();
             break;
         case 30:
             // XCH A, Rn 30
@@ -514,7 +515,7 @@ this.execute = function ()
             this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = temp1;
             this.IRAM[this.SPF["a"][1]] = temp2;
             // update status work for priority
-            this.setPSWpriority();
+            //this.setPSWpriority();
             
             break;
             
@@ -602,7 +603,16 @@ this.execute = function ()
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
             this.SPF["sp"] =  parseInt(operand[1].replace('\#','').replace('\h',''),16);
             break;
-                       
+        case 46: //XCHD A, @R1
+           // operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split("@");    
+            var temp1 = this.IRAM[this.SPF["a"][1]];
+            var temp2 = this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]];
+            
+            this.IRAM[this.SPF["a"][1]] = (temp1 & 0xF0) | (temp2& 0x0F);
+            this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]] = (temp2 & 0xF0) | (temp1 & 0x0F);
+            break;    
+                   
         default: break;
     }
     
