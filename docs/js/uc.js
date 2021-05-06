@@ -96,7 +96,19 @@ function asm_execute()
      "pop ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // pop direct 44
      "mov sp,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // sp #immediate 45
      "xchd a,@r[0|1]", //XCHD A, @R1 46
-     
+     // Arithmetic 
+     "add a,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // add a,#immediate 47
+     "add a,@r[0|1]", // add a,indirect  48
+     "add a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // add a,direct 49
+     "add a,r[0-7]", // add a,register 50
+     "addc a,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // addc a,#immediate 51
+     "addc a,@r[0|1]", // addc a,indirect 52
+     "addc a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // addc a,direct 53
+     "addc a,r[0-7]", // addc a,register 54
+     "subb a,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // subb a,#immediate 55
+     "subb a,@r[0|1]", // subb a,indirect 56
+     "subb a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // subb a,direct 57
+     "subb a,r[0-7]", // subb a,register 58
      // Pending indirect address , dptr , setb, clr
     "add a,b",
     "sub a,b"
@@ -611,7 +623,96 @@ this.execute = function ()
             
             this.IRAM[this.SPF["a"][1]] = (temp1 & 0xF0) | (temp2& 0x0F);
             this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]] = (temp2 & 0xF0) | (temp1 & 0x0F);
-            break;    
+            break;   
+        case 47: //add a,#immediate
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = 0x0FF & parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            this.opcode_Add(data_a,data_b,0);
+            
+            break;
+        case 48: // add a,indirect  48
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split("@");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = 0x0FF & this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]];
+            this.opcode_Add(data_a,data_b,0);
+            
+            break;
+        case 49:// add a,direct 49
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[parseInt(operand[1].replace('\h',''),16)];
+            this.opcode_Add(data_a,data_b,0);
+            
+            
+            break;
+        case 50: // add a,register 50
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            console.log("the data for reg is : "+data_a +" b " +data_b);
+            this.opcode_Add(data_a,data_b,0);
+            
+            break;
+        case 51:// addc a,#immediate 51
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = 0x0FF & parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_Add(data_a,data_b,data_c);
+            
+            break;
+        case 52: // addc a,indirect 52
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split("@");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = 0x0FF & this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_Add(data_a,data_b,data_c);
+            //this.opcode_Add(data_a,data_b,0);
+            break;
+        case 53:// addc a,direct 53
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[parseInt(operand[1].replace('\h',''),16)];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_Add(data_a,data_b,data_c);
+            
+            break;
+        case 54:// addc a,register 54
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_Add(data_a,data_b,data_c);
+            break;
+        case 55:
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = 0x0FF & parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_sub(data_a,data_b,data_c);
+            break;
+        case 56:// subb a,indirect
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split("@");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = 0x0FF & this.IRAM[this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_sub(data_a,data_b,data_c);
+            break;
+        case 57://subb a,direct
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[parseInt(operand[1].replace('\h',''),16)];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_sub(data_a,data_b,data_c);
+            break;
+        case 58: // subb a,register
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_sub(data_a,data_b,data_c);
+            break;
                    
         default: break;
     }
@@ -634,9 +735,78 @@ this.setPSWpriority = function ()
     ps_t = ps_t | 0x01;
     
     //console.log("pri = "+priority+" and int value - "+( 0xFE | (priority?1:0))+" Acc = "+this.IRAM[this.SPF["a"][1]]);
-    console.log(ps_t & ( 0xFE | (priority?1:0)));
+   // console.log(ps_t & ( 0xFE | (priority?1:0)));
     this.IRAM[this.SPF["psw"][1]] = ps_t & ( 0xFE | (priority?1:0)); 
 }
+this.opcode_Add = function (data_a,data_b,data_c)
+{
+    var temp = data_a + data_b+data_c;
+            var aux_cy = (data_a&0x0f) + (data_b&0x0f) + data_c;
+            var over_flow = ((data_a&0x7F) + (data_b&0x7F) + data_c) & 0x80;
+            var cy = temp & 0x100;
+            // carry 
+            var ps_t = this.IRAM[this.SPF["psw"][1]];
+    ps_t = ps_t | 0x80;
+            this.IRAM[this.SPF["psw"][1]] =  (((cy) >> 1) | 0x7F) & ps_t;
+          //  console.log("After CY : "+ this.IRAM[this.SPF["psw"][1]].toString(16));
+            // Aux carry 
+            ps_t = 0;
+            ps_t = this.IRAM[this.SPF["psw"][1]];
+    ps_t = (ps_t | 0x40);
+            this.IRAM[this.SPF["psw"][1]] = (((aux_cy & 0x10) << 2) | 0xBF) & ps_t;
+            //console.log("After AC : "+ parseInt(this.IRAM[this.SPF["psw"][1]]).toString(16)+"ac =  "+((aux_cy & 0x10) >>2)+ " ps_t = " +ps_t);
+            // Overflow 
+            ps_t = this.IRAM[this.SPF["psw"][1]];
+    ps_t = ps_t | 0x04;
+            if((cy && !over_flow) || (!cy && over_flow))
+            {
+                this.IRAM[this.SPF["psw"][1]] = ps_t & 0x0FF; 
+            }
+            else
+            {
+                 this.IRAM[this.SPF["psw"][1]] = ps_t & 0x0FB;
+            }
+            //console.log("After ov : "+ this.IRAM[this.SPF["psw"][1]].toString(16));
+            // Update A value
+            this.IRAM[this.SPF["a"][1]] = temp & 0xFF;
+            
+}
+
+this.opcode_sub = function (data_a,data_b,data_c)
+{
+    var temp = data_a - data_b - data_c;
+            var aux_cy = (data_a&0x0f) - (data_b&0x0f) - data_c;
+            var over_flow = ((data_a&0x7F) - (data_b&0x7F) - data_c) & 0x80;
+            var cy = temp & 0x100;
+            // carry 
+            var ps_t = this.IRAM[this.SPF["psw"][1]];
+    ps_t = ps_t | 0x80;
+            this.IRAM[this.SPF["psw"][1]] =  (((cy) >> 1) | 0x7F) & ps_t;
+          //  console.log("After CY : "+ this.IRAM[this.SPF["psw"][1]].toString(16));
+            // Aux carry 
+            ps_t = 0;
+            ps_t = this.IRAM[this.SPF["psw"][1]];
+    ps_t = (ps_t | 0x40);
+            this.IRAM[this.SPF["psw"][1]] = (((aux_cy & 0x10) << 2) | 0xBF) & ps_t;
+            //console.log("After AC : "+ parseInt(this.IRAM[this.SPF["psw"][1]]).toString(16)+"ac =  "+((aux_cy & 0x10) >>2)+ " ps_t = " +ps_t);
+            // Overflow 
+            ps_t = this.IRAM[this.SPF["psw"][1]];
+    ps_t = ps_t | 0x04;
+            if((cy && !over_flow) || (!cy && over_flow))
+            {
+                this.IRAM[this.SPF["psw"][1]] = ps_t & 0x0FF; 
+            }
+            else
+            {
+                 this.IRAM[this.SPF["psw"][1]] = ps_t & 0x0FB;
+            }
+            //console.log("After ov : "+ this.IRAM[this.SPF["psw"][1]].toString(16));
+            // Update A value
+            this.IRAM[this.SPF["a"][1]] = temp & 0xFF;
+            
+}
+
+
 this.getOpcode = function ()
 {
   var i = 0;
