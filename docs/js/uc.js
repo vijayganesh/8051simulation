@@ -33,6 +33,7 @@ function clear_asm_text()
 }
 
 function asm_execute()
+//class asm_execute
 {
 
     
@@ -47,7 +48,7 @@ function asm_execute()
     
      this.validOPCODE = [
      //"mov a,#([a-fA-F0-9]{2})H", // done 0
-     "mov a,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H",
+     "mov (a)|(b),#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H",
      "mov a,r[0-7]",  // done 1
      "mov r[0-7],a", // done 2
      "mov r[0-7],#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //done mov r[0-7] immediate 3
@@ -109,7 +110,13 @@ function asm_execute()
      "subb a,@r[0|1]", // subb a,indirect 56
      "subb a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // subb a,direct 57
      "subb a,r[0-7]", // subb a,register 58
-     // Pending indirect address , dptr , setb, clr
+     "^clr a$", // clear acc 59
+     "clr ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // clear address of bit 60
+     "^clr (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7]$", // clear spf 61
+     "^clr c$", // clear carry flag 62
+     "setb ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", 
+     "^setb (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7]$",
+     // Pending  setb, clr
     "add a,b",
     "sub a,b"
     ];
@@ -137,6 +144,10 @@ function asm_execute()
    "p2" :["p2",0xA0],
    "p3" :["p3",0xB0],
    "ip" :["ip",0xB8],
+   "tcon" :["tcon",0x88],
+   "scon" : ["scon",0x98],
+   "ip" :["ip",0xb8],
+   "ie" :["ie",0xa8],
    "pc" : 0,
    "sp" : 0x07
   };
@@ -310,9 +321,11 @@ this.execute = function ()
     var oprand = " ";
     switch(op_exec)
     {
-     
+      
        // case 5: this.SPF["a"] = this.SPF["b"]; break;
-        case 0: this.IRAM[this.SPF["a"][1]] = parseInt(((this.line_code[this.SPF["pc"]]).split("#"))[1].replace('\h',''),16);  break; // parseInt ((k.split("#"))[1].replace('\h',''),16)
+        case 0:
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF[operand[0]][1]] = parseInt(((this.line_code[this.SPF["pc"]]).split("#"))[1].replace('\h',''),16);  break; // parseInt ((k.split("#"))[1].replace('\h',''),16)
         case 1: // This is mov a,r[0-7]
              operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
             this.IRAM[this.SPF["a"][1]] = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
@@ -713,15 +726,158 @@ this.execute = function ()
             var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
             this.opcode_sub(data_a,data_b,data_c);
             break;
-                   
+        case 59: // clear a
+            this.IRAM[0xe0] = 0x0;
+            break
+        case 60:// clear given addresst
+            // call function to set 
+            //
+            var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
+            this.set_clr_bit(loc,0);
+            break;
+        case 61: // clear spf 
+            var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+           // loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
+            console.log("Reachced clear spf " + operand);
+            loc = operand[0].split(".");
+            console.log("loc values " + loc);
+            if(loc[0] == "acc")
+            {
+                loc[0] = "a";
+            }
+            console.log("Loc values " + loc);
+            loc = this.SPF[loc[0]][1]+parseInt(loc[1],16);
+            this.set_clr_bit(loc,0);
+            break;
+        case 62:
+            this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
+            break;
+            
+            case 63:// clear given addresst
+            // call function to set 
+            //
+            var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
+            this.set_clr_bit(loc,1);
+            break;
+        case 64: // clear spf 
+            var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+           // loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
+            console.log("Reachced clear spf " + operand);
+            loc = operand[0].split(".");
+            console.log("loc values " + loc);
+            if(loc[0] == "acc")
+            {
+                loc[0] = "a";
+            }
+            console.log("Loc values " + loc);
+            loc = this.SPF[loc[0]][1]+parseInt(loc[1],16);
+            this.set_clr_bit(loc,1);
+            break;
         default: break;
     }
     
  // Set priority update always   
  this.setPSWpriority();   
 }
-this.setPSWpriority = function ()
+
+this.set_clr_bit = function (loc,set_clr)
 {
+    var base = 0x0;
+    var iloc = 0x0;
+    var bitposition = 0;
+    var data= 0x0;
+    console.log("The loc = "+loc);
+ if(loc < 0x7f)
+ {
+     base = 0x20;
+     // this is between IRAM 20-2F   
+     // finding iram location
+     iloc = base+parseInt(loc/8,16);
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data | 1 << bitposition);
+     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+     if(!set_clr)
+     {
+     data = data & ( ~(1 << bitposition) & 0xff);
+     }
+     this.IRAM[iloc] = data;
+     
+ }
+ else if(loc >= 0x80 && loc <= 0xBF) 
+ {
+     
+     base = 0x80;
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data | 1 << bitposition);
+     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+     if(!set_clr)
+     {
+     data = data & ( ~(1 << bitposition) & 0xff);
+     }
+     this.IRAM[iloc] = data;
+     
+ }
+ else if(loc >= 0xE0 && loc <= 0xe7)
+ {
+     base = 0xe0;
+     bitposition = parseInt(loc%8);
+     iloc = base;
+     data = this.IRAM[iloc];
+     
+     data = (data | 1 << bitposition);
+     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+     if(!set_clr)
+     {
+     data = data & ( ~(1 << bitposition) & 0xff);
+     }
+     this.IRAM[iloc] = data;
+ }
+ else if(loc >= 0xf0 && loc <= 0xf7)
+ {
+     base = 0xf0;
+     iloc = base;
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data | 1 << bitposition);
+     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+     if(!set_clr)
+     {
+     data = data & ( ~(1 << bitposition) & 0xff);
+     }
+     this.IRAM[iloc] = data;
+ }
+ else if(loc >= 0xd0 && loc <= 0xd7)
+ {
+    
+     base = 0xd0;
+     iloc = base;
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data | 1 << bitposition);
+     console.log("psw The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+     if(!set_clr)
+     {
+     data = data & ( ~(1 << bitposition) & 0xff);
+     }
+     this.IRAM[iloc] = data;
+ }
+     
+    
+}
+this.setPSWpriority = function ()
+{ // can merge this with set_clr_bit function 
     var priority = 0;
     var temp = this.IRAM[this.SPF["a"][1]]; // Acc value
     
