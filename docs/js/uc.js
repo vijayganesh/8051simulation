@@ -48,13 +48,13 @@ function asm_execute()
     
      this.validOPCODE = [
      //"mov a,#([a-fA-F0-9]{2})H", // done 0
-     "mov (a)|(b),#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H",
+     "mov (a)|(b),#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H",
      "mov a,r[0-7]",  // done 1
      "mov r[0-7],a", // done 2
-     "mov r[0-7],#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //done mov r[0-7] immediate 3
+     "mov r[0-7],#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //done mov r[0-7] immediate 3
      "mov r[0-7],r[0-7]",// done mov register, register 4
      "mov a,([0-9a-fA-F]){2}H", // done mov a,direct address  5
-     "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // done mov dir,data 6
+     "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // done mov dir,data 6
      "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //  done mov dir,dir 7
      "mov r[0-7],((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // done mov r[0-7], direct 8
      "mov a,@r[0-1]",// done mov indirect @r[0-1] 9
@@ -98,15 +98,15 @@ function asm_execute()
      "mov sp,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // sp #immediate 45
      "xchd a,@r[0|1]", //XCHD A, @R1 46
      // Arithmetic 
-     "add a,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // add a,#immediate 47
+     "add a,#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // add a,#immediate 47
      "add a,@r[0|1]", // add a,indirect  48
      "add a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // add a,direct 49
      "add a,r[0-7]", // add a,register 50
-     "addc a,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // addc a,#immediate 51
+     "addc a,#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // addc a,#immediate 51
      "addc a,@r[0|1]", // addc a,indirect 52
      "addc a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // addc a,direct 53
      "addc a,r[0-7]", // addc a,register 54
-     "subb a,#((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // subb a,#immediate 55
+     "subb a,#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // subb a,#immediate 55
      "subb a,@r[0|1]", // subb a,indirect 56
      "subb a,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // subb a,direct 57
      "subb a,r[0-7]", // subb a,register 58
@@ -116,6 +116,7 @@ function asm_execute()
      "^clr c$", // clear carry flag 62
      "setb ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", 
      "^setb (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7]$",
+     "^setb c$",
      // Pending  setb, clr
     "add a,b",
     "sub a,b"
@@ -756,7 +757,7 @@ this.execute = function ()
             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
             break;
             
-            case 63:// clear given addresst
+            case 63:// setb given addresst
             // call function to set 
             //
             var loc=0;
@@ -764,7 +765,7 @@ this.execute = function ()
             loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
             this.set_clr_bit(loc,1);
             break;
-        case 64: // clear spf 
+        case 64: // setb spf 
             var loc=0;
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
            // loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
@@ -779,6 +780,10 @@ this.execute = function ()
             loc = this.SPF[loc[0]][1]+parseInt(loc[1],16);
             this.set_clr_bit(loc,1);
             break;
+            case 65:
+            this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),1);
+            break;
+         
         default: break;
     }
     
@@ -896,7 +901,7 @@ this.setPSWpriority = function ()
 }
 this.opcode_Add = function (data_a,data_b,data_c)
 {
-    var temp = data_a + data_b+data_c;
+    var temp = (data_a&0xff) + (data_b&0xff ) + (data_c&0xff);
             var aux_cy = (data_a&0x0f) + (data_b&0x0f) + data_c;
             var over_flow = ((data_a&0x7F) + (data_b&0x7F) + data_c) & 0x80;
             var cy = temp & 0x100;
@@ -1076,16 +1081,16 @@ this.showSFR = function()
    
     values += "<div class=\"table-responsive overflow-auto\" style=\"height:250px\"> <table class=\"table\"> <tr> <th>  SFR </th> <th> Values </th></tr>";
  
- values += "<tr> <td> Acc </td> <td> 0x"+this.IRAM[this.SPF["a"][1]].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> B </td> <td> 0x"+this.IRAM[this.SPF["b"][1]].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R0 </td> <td> 0x"+this.IRAM[this.SPF["r0"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R1 </td> <td> 0x"+this.IRAM[this.SPF["r1"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R2 </td> <td> 0x"+this.IRAM[this.SPF["r2"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R3 </td> <td> 0x"+this.IRAM[this.SPF["r3"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R4 </td> <td> 0x"+this.IRAM[this.SPF["r4"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R5 </td> <td> 0x"+this.IRAM[this.SPF["r5"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R6 </td> <td> 0x"+this.IRAM[this.SPF["r6"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
- values += "<tr> <td> R7 </td> <td> 0x"+this.IRAM[this.SPF["r7"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)].toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> Acc </td> <td> 0x"+(this.IRAM[this.SPF["a"][1]]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> B </td> <td> 0x"+(this.IRAM[this.SPF["b"][1]]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R0 </td> <td> 0x"+(this.IRAM[this.SPF["r0"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R1 </td> <td> 0x"+(this.IRAM[this.SPF["r1"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R2 </td> <td> 0x"+(this.IRAM[this.SPF["r2"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R3 </td> <td> 0x"+(this.IRAM[this.SPF["r3"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R4 </td> <td> 0x"+(this.IRAM[this.SPF["r4"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R5 </td> <td> 0x"+(this.IRAM[this.SPF["r5"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R6 </td> <td> 0x"+(this.IRAM[this.SPF["r6"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
+ values += "<tr> <td> R7 </td> <td> 0x"+(this.IRAM[this.SPF["r7"][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]&0xff).toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> DPL </td> <td> 0x"+this.IRAM[this.SPF["dpl"][1]].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> DPH </td> <td> 0x"+this.IRAM[this.SPF["dph"][1]].toString(this.radix)+"</td> </tr>";
  values += "<tr> <td> PSW </td> <td> 0x"+this.IRAM[this.SPF["psw"][1]].toString(this.radix)+"</td> </tr>";
