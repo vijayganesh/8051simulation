@@ -48,7 +48,7 @@ function asm_execute()
     
      this.validOPCODE = [
      //"mov a,#([a-fA-F0-9]{2})H", // done 0
-     "mov (a)|(b),#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H",
+    "^mov ((a)|(b)),#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|(#[0-9]{1,3}$)))$",
      "mov a,r[0-7]",  // done 1
      "mov r[0-7],a", // done 2
      "mov r[0-7],#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //done mov r[0-7] immediate 3
@@ -114,13 +114,67 @@ function asm_execute()
      "clr ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // clear address of bit 60
      "^clr (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7]$", // clear spf 61
      "^clr c$", // clear carry flag 62
-     "setb ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", 
-     "^setb (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7]$",
-     "^setb c$",
-     // Pending  setb, clr
-    "add a,b",
+     "setb ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // 63
+     "^setb (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7]$", //64
+     "^setb c$", //65
+     "^da a$", // Adjust to bcd //66 
+     "dec a", // done increment a - 1 67
+     "dec r[0-7]", // done increment r[0-7]  - 1 68
+     "dec ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // done increment direct address value - 1 69
+     "dec @r[0-1]", // done increment indirect address - 1 70
+     // Logical operation 
+     // and 
+     "ANL (A|p[0-3]),#[+-]?((((0[a-fA-f][a-fA-F0-9])|(([0-9]?[0-9a-fA-F])))H)|([0-9]{1,3}))", // and a,immediate 71
+     "ANL A,@R[0-1]", // and a,indirect 72
+     "ANL A,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and a,direct 73
+     "ANL A,R[0-7]", // and a,register 74
+     "ANL C,/((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and bit cy with ~ bit values 75
+     "ANL C,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and bit cy with bit values 76
+     "ANL ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,A", // and direct with a 77
+     "ANL ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,#[+-]?((((0[a-fA-f][a-fA-F0-9])|(([0-9]?[0-9a-fA-F])))H)|([0-9]{1,3}))", // and direct with immediate data 78
+     
+     // Or logical 
+     "ORL (A|p[0-3]),#[+-]?((((0[a-fA-f][a-fA-F0-9])|(([0-9]?[0-9a-fA-F])))H)|([0-9]{1,3}))", // and a,immediate 79
+     "ORL A,@R[0-1]", // and a,indirect 80
+     "ORL A,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and a,direct 81
+     "ORL A,R[0-7]", // and a,register 82
+     "ORL C,/((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and bit cy with ~ bit values 83
+     "ORL C,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and bit cy with bit values 84
+     "ORL ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,A", // and direct with a 85
+     "ORL ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,#[+-]?((((0[a-fA-f][a-fA-F0-9])|(([0-9]?[0-9a-fA-F])))H)|([0-9]{1,3}))", // and direct with immediate data 86
+     // 87 - 90 reserved for logical operraion and OR if needed 
+    "orl ---", // 87
+     "orl z+", // 88
+    "anl ---", //89
+    "anl z+", //90
+     
+     "XRL (A|p[0-3]),#[+-]?((((0[a-fA-f][a-fA-F0-9])|(([0-9]?[0-9a-fA-F])))H)|([0-9]{1,3}))", // and a,immediate 91
+     "XRL A,@R[0-1]", // and a,indirect 92
+     "XRL A,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and a,direct 93
+     "XRL A,R[0-7]", // and a,register 94
+     "^XRL C,/((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H$", // and bit cy with ~ bit values 95
+     "XRL C,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // and bit cy with bit values 96
+     "XRL ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,A", // and direct with a 97
+     "XRL ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,#[+-]?((((0[a-fA-f][a-fA-F0-9])|(([0-9]?[0-9a-fA-F])))H)|([0-9]{1,3}))", // and direct with immediate data 98
+     "xrl z-", //99
+     
+     
+     // Complement instruction 
+     "^CPL (A|p[0-3])$",// comp a 100
+     "CPL ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // comp location 101
+     "CPL C", // Complement c 102
+     "^CPL (a|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7]$", // 103
+     "^cpl $", // additional activity 104
+     
+    // multiple and Divivsion 
+    "div ab", // divivsion 105
+    "mul ab",// multiple 106
+    
+    // Pending  div,mul logical and jump
+    
     "sub a,b"
     ];
+this.exe_msg = " ";   
     this.reg_opcode = new RegExp(this.validOPCODE.join("|"),"i");
  this.SPF = {
    "a":["a",0xE0],
@@ -197,12 +251,13 @@ this.reset = function ()
  this.SPF["pc"]=0;
  this.SPF["sp"] = 0x07;
  this.radix = 16;
- 
+ this.exe_msg = " ";
  for(var i=0;i<256;i++)
      this.IRAM[i] = 0;
  
  for(var i=0;i<4096;i++)
      this.ERAM[i] = 0;
+ 
 
 }
 
@@ -309,16 +364,29 @@ this.pc_Increment = function ()
     }
    // console.log(this.SPF["pc"]);
 }
-
+this.convertValuedecimal = function (value)
+{
+   var length = value.length;
+  // alert("GOt value = "+value);
+   var r_value  = 0x0;
+    if(value[length-1] == 'h')
+        r_value = parseInt(value,16);
+    else
+        r_value = parseInt(value);
+    
+    return r_value;
+}
 this.execute = function ()
 {
     // This function will execute each line of code
     
     // find which opcode  to execute
     var op_exec = this.getOpcode();
-    //console.log("The optainded exec="+op_exec);
+    console.log("The optainded exec="+op_exec + " code is " + this.line_code[this.SPF["pc"]]);
     if( op_exec == -1)
         return -1;
+    this.exe_msg += "Executing line:"+this.SPF["pc"]+ (this.line_code[this.SPF["pc"]])+ "<br>"; 
+    document.getElementById("Error_msg").innerHTML = this.exe_msg;
     var oprand = " ";
     switch(op_exec)
     {
@@ -326,7 +394,9 @@ this.execute = function ()
        // case 5: this.SPF["a"] = this.SPF["b"]; break;
         case 0:
             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-            this.IRAM[this.SPF[operand[0]][1]] = parseInt(((this.line_code[this.SPF["pc"]]).split("#"))[1].replace('\h',''),16);  break; // parseInt ((k.split("#"))[1].replace('\h',''),16)
+            //this.IRAM[this.SPF[operand[0]][1]] = parseInt(((this.line_code[this.SPF["pc"]]).split("#"))[1].replace('\h',''),16);  break; // parseInt ((k.split("#"))[1].replace('\h',''),16)
+            this.IRAM[this.SPF[operand[0]][1]] = this.convertValuedecimal((operand[1].split("#"))[1]);
+            break;
         case 1: // This is mov a,r[0-7]
              operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
             this.IRAM[this.SPF["a"][1]] = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
@@ -338,13 +408,14 @@ this.execute = function ()
         case 3:
             // mov r[0-7] #immediate
             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-            this.IRAM[this.SPF[operand[0]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = parseInt(((this.line_code[this.SPF["pc"]]).split("#"))[1].replace('\h',''),16);
+            this.IRAM[this.SPF[operand[0]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] =this.convertValuedecimal((operand[1].split("#"))[1]);
+            //parseInt(((this.line_code[this.SPF["pc"]]).split("#"))[1].replace('\h',''),16);
             break;
         case 4:
             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
             this.IRAM[this.SPF[operand[0]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]; 
             break;
-        case 5:
+        case 5: // mov a,direct
             operand =  (this.line_code[this.SPF["pc"]]).split(",");
             this.IRAM[this.SPF["a"][1]] = (this.IRAM[parseInt(operand[1].replace('\h',''),16)]);
            // console.log("The data is operand 1 is "+operand[1].replace('\h',''));
@@ -353,7 +424,7 @@ this.execute = function ()
         case 6:
             // mov direct,#data
             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-            this.IRAM[parseInt(operand[0].replace('\h',''),16)] = parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] = this.convertValuedecimal((operand[1].split("#"))[1]); // parseInt(operand[1].replace('\#','').replace('\h',''),16);
             //console.log("mov direct " + parseInt(operand[1].replace('\#','').replace('\h',''),16).toString(16));
             break;
         case 7:
@@ -391,7 +462,7 @@ this.execute = function ()
             operand =  ((this.line_code[this.SPF["pc"]]).split(" "));
             this.IRAM[parseInt(operand[1].replace('\h',''),16)] = this.IRAM[parseInt(operand[1].replace('\h',''),16)]+1;
             
-            break
+            break;
             
         case 14: 
          // increment indirect address + 1 14
@@ -402,7 +473,8 @@ this.execute = function ()
             // mov dpl|h immediate
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
            // console.log("dpl is : " + parseInt(operand[1].replace('\#','').replace('\h',''),16));
-            this.IRAM[this.SPF[operand[0]][1]] = parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            this.IRAM[this.SPF[operand[0]][1]] = this.convertValuedecimal((operand[1].split("#"))[1]); 
+            //parseInt(operand[1].replace('\#','').replace('\h',''),16);
             break;
             
         case 16:
@@ -558,7 +630,8 @@ this.execute = function ()
         case 33:
             // mov @r0-1 immediate 33
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-            this.IRAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] =  parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            this.IRAM[this.IRAM[parseInt(this.SPF[operand[0].replace('\@','')][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] =  this.convertValuedecimal((operand[1].split("#"))[1]); 
+            //parseInt(operand[1].replace('\#','').replace('\h',''),16);
             break;
         case 34:
             // mov @r[0-1] direct 34
@@ -627,7 +700,8 @@ this.execute = function ()
         case 45:
             // sp #immediate
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-            this.SPF["sp"] =  parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            this.SPF["sp"] =  this.convertValuedecimal((operand[1].split("#"))[1]);
+            //parseInt(operand[1].replace('\#','').replace('\h',''),16);
             break;
         case 46: //XCHD A, @R1
            // operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
@@ -641,7 +715,7 @@ this.execute = function ()
         case 47: //add a,#immediate
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
             var data_a = this.IRAM[this.SPF["a"][1]];
-            var data_b = 0x0FF & parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            var data_b = 0x0FF & this.convertValuedecimal((operand[1].split("#"))[1]); //parseInt(operand[1].replace('\#','').replace('\h',''),16);
             this.opcode_Add(data_a,data_b,0);
             
             break;
@@ -671,7 +745,7 @@ this.execute = function ()
         case 51:// addc a,#immediate 51
              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
             var data_a = this.IRAM[this.SPF["a"][1]];
-            var data_b = 0x0FF & parseInt(operand[1].replace('\#','').replace('\h',''),16);
+            var data_b = 0x0FF & this.convertValuedecimal((operand[1].split("#"))[1]); //parseInt(operand[1].replace('\#','').replace('\h',''),16);
             var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
             this.opcode_Add(data_a,data_b,data_c);
             
@@ -769,28 +843,361 @@ this.execute = function ()
             var loc=0;
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
            // loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
-            console.log("Reachced clear spf " + operand);
+            //console.log("Reachced clear spf " + operand);
             loc = operand[0].split(".");
-            console.log("loc values " + loc);
+            //console.log("loc values " + loc);
             if(loc[0] == "acc")
             {
                 loc[0] = "a";
             }
-            console.log("Loc values " + loc);
+            //console.log("Loc values " + loc);
             loc = this.SPF[loc[0]][1]+parseInt(loc[1],16);
             this.set_clr_bit(loc,1);
             break;
             case 65:
             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),1);
             break;
-         
+            case 66:
+                // da a 
+                // condition if lower nibble is > 9 add 6 to lower nibble or AC is 1 add 06 to a
+                // if CY = 1 or higher nibble > 9 add 60h
+                // flags affected is CY due to addition and parity 
+                
+                var to_add = 0x00;
+                var psw = this.IRAM[this.SPF["psw"][1]];
+                var acc = this.IRAM[this.SPF["a"][1]];
+                var bcd = 0x00;
+                if((psw & 0x80) || (acc&0xF0) > 0x9f)
+                {
+                    to_add = to_add | 0x60;
+                }
+                if((psw & 0x40) || (acc&0x0f)>0x09)
+                {
+                    to_add = to_add | 0x06;
+                }
+                
+                bcd = acc + to_add;
+                if((bcd & 0xf0) > 0x09)
+                {
+                    bcd = bcd + 0x60;
+                }
+                
+                this.IRAM[this.SPF["a"][1]] = bcd & 0xff;
+                // update the carry flag
+                this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),(bcd&0x300)?1:0);
+                break;
+        // decrement by 1 
+        case 67:
+            // decrement a+1 11
+            this.IRAM[this.SPF["a"][1]] = this.IRAM[this.SPF["a"][1]] - 1;
+            break;
+        case 68: 
+            // decrement r[0-7] +1 12
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "));
+            this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] - 1; 
+            break;
+        case 69:
+           //  decrement direct address value +1 13
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "));
+            this.IRAM[parseInt(operand[1].replace('\h',''),16)] = this.IRAM[parseInt(operand[1].replace('\h',''),16)]-1;
+            
+            break;
+            
+        case 70: 
+         // decrement indirect address + 1 14
+            operand = ((this.line_code[this.SPF["pc"]]).split("@"));
+            this.IRAM[this.IRAM[parseInt(this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] = this.IRAM[this.IRAM[parseInt(this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]] - 1;
+        break; 
+        // logical operation 
+        // and
+        case 71: // and a,immediate
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF[operand[0]][1]] = this.IRAM[this.SPF[operand[0]][1]] & this.convertValuedecimal((operand[1].split("#"))[1]);
+           
+            break;
+        case 72: // and a,inditrect
+            operand = ((this.line_code[this.SPF["pc"]]).split("@"));
+            this.IRAM[this.SPF["a"][1]] &= this.IRAM[this.IRAM[parseInt(this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+            break;
+        case 73: //and a,direct
+            operand =  (this.line_code[this.SPF["pc"]]).split(",");
+            this.IRAM[this.SPF["a"][1]] &= (this.IRAM[parseInt(operand[1].replace('\h',''),16)]);
+            break;                
+         case 74: // and a,register
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF["a"][1]] &=  this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            break;
+         case 75: // and c,not bit
+             var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            loc = parseInt(operand[1].replace('\h','').replace('/','').replace(' ',''),16);
+             var val = 0x0;
+             val = (this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)) & ~this.getBitValue(loc))&0x01;
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),val);
+             
+            break;
+         case 76: // and c,bitposition
+             var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            console.log("THe operand get is :"+operand[1]);
+            loc = parseInt(operand[1].replace('\h','').replace(' ',''),16);
+             var val = 0x0;
+             val = (this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)) & this.getBitValue(loc))&0x01;
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),val);
+            break;
+         case 77: // and direct with a 77
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] &= this.IRAM[this.SPF["a"][1]]
+            break;
+         case 78: // and direct with immediate data 78
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] &= this.convertValuedecimal((operand[1].split("#"))[1]);
+            break;
+         case 79: // 0r a,immediate
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF[operand[0]][1]] = this.IRAM[this.SPF[operand[0]][1]] | this.convertValuedecimal((operand[1].split("#"))[1]);
+           
+            break;
+        case 80: // or a,inditrect
+            operand = ((this.line_code[this.SPF["pc"]]).split("@"));
+            this.IRAM[this.SPF["a"][1]] |= this.IRAM[this.IRAM[parseInt(this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+            break;
+        case 81: //or a,direct
+            operand =  (this.line_code[this.SPF["pc"]]).split(",");
+            this.IRAM[this.SPF["a"][1]] |= (this.IRAM[parseInt(operand[1].replace('\h',''),16)]);
+            break;                
+         case 82: // or a,register
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF["a"][1]] |=  this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            break;
+         case 83: // or c,not bit
+             var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            loc = parseInt(operand[1].replace('\h','').replace('/','').replace(' ',''),16);
+             var val = 0x0;
+             val = (this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)) | ~this.getBitValue(loc))&0x01;
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),val);
+             
+            break;
+         case 84: // or c,bitposition
+             var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            console.log("THe operand get is :"+operand[1]);
+            loc = parseInt(operand[1].replace('\h','').replace(' ',''),16);
+             var val = 0x0;
+             val = (this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)) | this.getBitValue(loc))&0x01;
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),val);
+            break;
+         case 85: // or direct with a 77
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] |= this.IRAM[this.SPF["a"][1]]
+            break;
+         case 86: // or direct with immediate data 78
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] |= this.convertValuedecimal((operand[1].split("#"))[1]);
+            break;
+                
+            //Logical XOR gate
+           case 91: // xor a,immediate
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF[operand[0]][1]] = this.IRAM[this.SPF[operand[0]][1]] ^ this.convertValuedecimal((operand[1].split("#"))[1]);
+           
+            break;
+        case 92: // xor a,inditrect
+            operand = ((this.line_code[this.SPF["pc"]]).split("@"));
+            this.IRAM[this.SPF["a"][1]] ^= this.IRAM[this.IRAM[parseInt(this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+            break;
+        case 93: //xor a,direct
+            operand =  (this.line_code[this.SPF["pc"]]).split(",");
+            this.IRAM[this.SPF["a"][1]] ^= (this.IRAM[parseInt(operand[1].replace('\h',''),16)]);
+            break;                
+         case 94: // xor a,register
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF["a"][1]] ^=  this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)];
+            break;
+         case 95: // xor c,not bit
+             var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            loc = parseInt(operand[1].replace('\h','').replace('/','').replace(' ',''),16);
+             var val = 0x0;
+             val = (this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)) ^ ~this.getBitValue(loc))&0x01;
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),val);
+             
+            break;
+         case 96: // xor c,bitposition
+             var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            //console.log("THe operand get is :"+operand[1]);
+            loc = parseInt(operand[1].replace('\h','').replace(' ',''),16);
+             var val = 0x0;
+             val = (this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)) ^ this.getBitValue(loc))&0x01;
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),val);
+            break;
+         case 97: // xor direct with a 97
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] ^= this.IRAM[this.SPF["a"][1]]
+            break;
+         case 98: // xor direct with immediate data 98
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] ^= this.convertValuedecimal((operand[1].split("#"))[1]);    
+            
+        // Complement 
+         case 100: // cpl a or p0-3
+             operand =  ((this.line_code[this.SPF["pc"]]).split(" "));
+             this.IRAM[this.SPF[operand[1]][1]] = ~this.IRAM[this.SPF[operand[1]][1]];
+             break;
+         case 101: // cpl bitposition
+             var loc= 0x0;
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             loc = parseInt(operand[1].replace('\h','').replace(' ',''),16);
+             this.set_clr_bit(loc,~(getBitValue(loc)&0x1));
+             break;
+         case 102: // cpl c
+             var val = this.getBitValue(this.SPF["psw"][1]+parseInt(7,16));
+             console.log("The values of carry is :"+val);
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),(~val&0x01));
+             break;
+         case 103: // cpl with spf
+              var loc=0;
+            operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+           // loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
+            //console.log("Reachced clear spf " + operand);
+            loc = operand[0].split(".");
+            //console.log("loc values " + loc);
+            if(loc[0] == "acc")
+            {
+                loc[0] = "a";
+            }
+            //console.log("Loc values " + loc);
+            loc = this.SPF[loc[0]][1]+parseInt(loc[1],16);
+            this.set_clr_bit(loc,~this.getBitValue(loc));
+             
+             break;
+             
+         case 105:// Division 
+             // Quotion stored in A
+             // Remainder stored in b
+             // Overflow flag is set when b is zero CY = 0 always
+             var a = this.IRAM[0xe0];
+             var b = this.IRAM[0xf0];
+             var q = 0;
+             var rem = 0;
+             if(b != 0)
+             {
+                 q = a/b;
+                 rem = a%b;
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(2,16),0);
+             }
+             else
+             {
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(2,16),1);
+             }
+             
+             this.IRAM[0xe0] = q;
+             this.IRAM[0xf0] = rem;
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
+             break;
+             
+             
+             
+         case 106:
+             
+             // lower byte stored in A
+             // upperbyte stored in b
+             // Overflow flag is set when result more than 255 is zero CY = 0 always
+             var a = this.IRAM[0xe0];
+             var b = this.IRAM[0xf0];
+             var result = a*b;
+             var lower_byte = result & 0x00ff;
+             var upper_byte = (result & 0xff00)>>8;
+             console.log("THe values are "+ a+" " +b+ " " + result+ " l " +lower_byte+ " h "+upper_byte);
+             
+             this.IRAM[0xe0] = lower_byte;
+             this.IRAM[0xf0] = upper_byte;
+             if(result > 255)
+             {
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(2,16),1);
+             }
+             else
+             {
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(2,16),0);
+             }
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
+             break;
+             
         default: break;
     }
     
  // Set priority update always   
  this.setPSWpriority();   
 }
-
+this.getBitValue = function (loc)
+{
+    
+      var base = 0x0;
+    var iloc = 0x0;
+    var bitposition = 0;
+    var data= 0x0;
+   // console.log("The get loc = "+loc);
+ if(loc < 0x7f)
+ {
+     base = 0x20;
+     // this is between IRAM 20-2F   
+     // finding iram location
+     iloc = base+parseInt(loc/8,16);
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data & 1 << bitposition);
+    
+     
+ }
+ else if(loc >= 0x80 && loc <= 0xBF) 
+ {
+     
+     base = 0x80;
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data & 1 << bitposition);
+    
+     
+ }
+ else if(loc >= 0xE0 && loc <= 0xe7)
+ {
+     base = 0xe0;
+     bitposition = parseInt(loc%8);
+     iloc = base;
+     data = this.IRAM[iloc];
+     
+     data = (data & 1 << bitposition);
+     
+ }
+ else if(loc >= 0xf0 && loc <= 0xf7)
+ {
+     base = 0xf0;
+     iloc = base;
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data & 1 << bitposition);
+     
+ }
+ else if(loc >= 0xd0 && loc <= 0xd7)
+ {
+    
+     base = 0xd0;
+     iloc = base;
+     bitposition = parseInt(loc%8);
+     data = this.IRAM[iloc];
+     
+     data = (data & 1 << bitposition);
+  
+ }
+ console.log("THe data bit is :" + data);
+ return (data?1:0);
+ 
+}
 this.set_clr_bit = function (loc,set_clr)
 {
     var base = 0x0;
@@ -808,7 +1215,7 @@ this.set_clr_bit = function (loc,set_clr)
      data = this.IRAM[iloc];
      
      data = (data | 1 << bitposition);
-     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+  //   console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
      if(!set_clr)
      {
      data = data & ( ~(1 << bitposition) & 0xff);
@@ -824,7 +1231,7 @@ this.set_clr_bit = function (loc,set_clr)
      data = this.IRAM[iloc];
      
      data = (data | 1 << bitposition);
-     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+  //   console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
      if(!set_clr)
      {
      data = data & ( ~(1 << bitposition) & 0xff);
@@ -840,7 +1247,7 @@ this.set_clr_bit = function (loc,set_clr)
      data = this.IRAM[iloc];
      
      data = (data | 1 << bitposition);
-     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+    // console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
      if(!set_clr)
      {
      data = data & ( ~(1 << bitposition) & 0xff);
@@ -855,7 +1262,7 @@ this.set_clr_bit = function (loc,set_clr)
      data = this.IRAM[iloc];
      
      data = (data | 1 << bitposition);
-     console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+   //  console.log("The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
      if(!set_clr)
      {
      data = data & ( ~(1 << bitposition) & 0xff);
@@ -871,7 +1278,7 @@ this.set_clr_bit = function (loc,set_clr)
      data = this.IRAM[iloc];
      
      data = (data | 1 << bitposition);
-     console.log("psw The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
+ //    console.log("psw The loc = "+loc+" iloc = "+iloc+" bitposition = "+bitposition); 
      if(!set_clr)
      {
      data = data & ( ~(1 << bitposition) & 0xff);
@@ -1146,7 +1553,8 @@ this.resetIRegister = function ()
 {
   for(var i=0;i<256;i++)
      this.IRAM[i] = 0;
-this.SPF["pc"] = 0;  
+this.SPF["pc"] = 0;
+this.exe_msg = " ";
 this.update();
 }
 }
