@@ -2,7 +2,7 @@
  * Script to control the micrcontroller simulation
  * Created by P.C. Vijay Ganesh
  *  @vijayganesh
- * https://github.com/vijayganesh/8051simulation/
+ * @https://github.com/vijayganesh/8051simulation/
  */
 
 const asm = {
