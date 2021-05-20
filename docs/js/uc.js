@@ -4,6 +4,7 @@
  *  @vijayganesh
  * @https://github.com/vijayganesh/8051simulation/
  */
+var user_name = "Guest";
 
 const asm = {
    "mov":1,
@@ -49,7 +50,7 @@ function asm_execute()
     
      this.validOPCODE = [
      //"mov a,#([a-fA-F0-9]{2})H", // done 0
-    "^mov ((a)|(b)),#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|([0-9]{1,3}$)))$",
+    "^mov ((a)|(b)|p[0-3]),#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|([0-9]{1,3}$)))$",
      "mov (a|b|dpl|dph|p[0-3]),(r[0-7]|a|b|dph|dpl|p[0-3])",  // done 1
      "mov r[0-7],(a|b|p[0-3]|dph|dpl)", // done 2
      "mov r[0-7],#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //done mov r[0-7] immediate 3
@@ -259,6 +260,12 @@ this.update = function ()
        this.showERAM();
    }
    
+    else if(this.active_screen == "ports")
+   {
+       // Update function
+       this.showPorts();
+   }
+   
 }
 
 this.reset = function ()
@@ -402,7 +409,7 @@ this.execute = function ()
     console.log("The optainded exec="+op_exec + " code is " + this.line_code[this.SPF["pc"]]);
     if( op_exec == -1)
         return -1;
-    this.exe_msg += "Executing line No : "+this.SPF["pc"]+" -> "+ (this.line_code[this.SPF["pc"]])+ "<br>"; 
+    this.exe_msg += "Executing "+user_name +"'s line No : "+this.SPF["pc"]+" -> "+ (this.line_code[this.SPF["pc"]])+ "<br>"; 
     document.getElementById("Error_msg").innerHTML = this.exe_msg;
     document.getElementById("Error_msg").scrollTo(0,document.getElementById("Error_msg").scrollHeight);
     var oprand = " ";
@@ -1033,7 +1040,7 @@ this.execute = function ()
          case 84: // or c,bitposition
              var loc=0;
             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-            console.log("THe operand get is :"+operand[1]);
+            //console.log("THe operand get is :"+operand[1]);
             loc = parseInt(operand[1].replace('\h','').replace(' ',''),16);
              var val = 0x0;
              val = (this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)) | this.getBitValue(loc))&0x01;
@@ -1045,7 +1052,10 @@ this.execute = function ()
             break;
          case 86: // or direct with immediate data 78
              operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
-            this.IRAM[parseInt(operand[0].replace('\h',''),16)] |= this.convertValuedecimal((operand[1].split("#"))[1]);
+             //console.log("The Values of op1 is "+operand[1]);
+             var val = this.convertValuedecimal((operand[1].split("#"))[1]);
+            // console.log("The Values of val = "+val);
+            this.IRAM[parseInt(operand[0].replace('\h',''),16)] |=  val;
             break;
                 
             //Logical XOR gate
@@ -1692,7 +1702,19 @@ this.showSFR = function()
  document.getElementById("spr_8051").innerHTML = values;
 //console.log("Inside showSFR");
 }
-
+this.showPorts = function ()
+{
+    var values = "";
+   
+    values += "<div class=\"table-responsive overflow-auto\" style=\"height:250px\"> <table class=\"table\"> <tr> <th>  SFR </th> <th> Values </th></tr>";
+    values += "<tr> <td> P0 </td> <td> 0x"+this.IRAM[this.SPF["p0"][1]].toString(this.radix)+"</td> </tr>";
+    values += "<tr> <td> P1 </td> <td> 0x"+this.IRAM[this.SPF["p1"][1]].toString(this.radix)+"</td> </tr>";
+    values += "<tr> <td> P2 </td> <td> 0x"+this.IRAM[this.SPF["p2"][1]].toString(this.radix)+"</td> </tr>";
+    values += "<tr> <td> P3 </td> <td> 0x"+this.IRAM[this.SPF["p3"][1]].toString(this.radix)+"</td> </tr>";
+     values += "</table></div>";
+     document.getElementById("ports").innerHTML = values;
+     
+}
 // External Ram DISPlay 
 this.showERAM = function ()
 {
@@ -1739,6 +1761,7 @@ this.resetIRegister = function ()
      this.IRAM[i] = 0;
 this.SPF["pc"] = 0;
 this.exe_msg = " ";
+
 this.update();
 }
 }
@@ -1752,4 +1775,3 @@ function updateERAMvalue()
 {
   asm_exe.updateERAMvalue(document.getElementById("eadrr_search").value, document.getElementById('exvalues').value);  
 }
-
