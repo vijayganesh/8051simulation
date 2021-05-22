@@ -186,9 +186,25 @@ function asm_execute()
      "^jb (a|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7],[a-z0-9]+", //116
      "^jbc ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,[a-z0-9]+", // 117
      "^jbc (a|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7],[a-z0-9]+", //118
+    "jc addd", //119
+    "jc a", //120
+        "jnb a", //121
+        "jnb a", //122
+        "jnc a", //123
+        "jnc a", //124
+        "jnz a", //125
+        "jnz a", // 126
+        "jz a", //127
+        "jz a", //128
+        
+        "jc a", //129 R
+        "jc a", // 130 R
+        
+        // swap instruction
+        "swap a", //131 swap
     
     
-    // Pending  div,mul logical and jump
+    // Pending  jump, call, 
     
     "sub a,b"
     ];
@@ -326,7 +342,31 @@ this.getCode = function ()
     {
          this.line_code[i] = this.line_code[i].toLowerCase();
         var op_split = this.line_code[i].split(":"); // Is label is there 
-         
+         // remove the spaces and update instruction
+        var in_split = op_split[op_split.length-1].split(" ");
+        
+        var opcode_flag = 1;
+        var clear_ins = "";
+        for(var temp=0;temp<in_split.length; temp++)
+        {
+           // console.log("The ins is : "+in_split[temp]);
+            if(in_split[temp] != "")
+            {
+                if(opcode_flag)
+                {
+                   //  console.log("ins if part "+in_split[temp]);
+                    clear_ins += in_split[temp]+" ";
+                    opcode_flag = 0;
+                }
+                else
+                {
+                 //   console.log("ins else part "+in_split[temp]);
+                    clear_ins += in_split[temp];
+                }
+            }
+        }
+        op_split[op_split.length-1] = clear_ins;
+       // console.log("The final op_split "+op_split[op_split.length-1]);
         if(!this.validateOPCODE(op_split[op_split.length-1]))
         {
             
@@ -338,6 +378,10 @@ this.getCode = function ()
             // There is label 
             this.labels[op_split[0]] = i;
             this.line_code[i] = op_split[1];
+        }
+        else
+        {
+          this.line_code[i] = op_split[0];
         }
         //console.log(this.line_code[i]);
         // Convert capital to small letters
@@ -406,7 +450,7 @@ this.execute = function ()
     
     // find which opcode  to execute
     var op_exec = this.getOpcode();
-    console.log("The optainded exec="+op_exec + " code is " + this.line_code[this.SPF["pc"]]);
+   // console.log("The optainded exec="+op_exec + " code is " + this.line_code[this.SPF["pc"]]);
     if( op_exec == -1)
         return -1;
     this.exe_msg += "Executing "+user_name +"'s line No : "+this.SPF["pc"]+" -> "+ (this.line_code[this.SPF["pc"]])+ "<br>"; 
@@ -1319,6 +1363,17 @@ this.execute = function ()
                  // Do nothing 
              }
              break;
+             // Pending Jump Instruction
+             //swap instruction
+         case 131: // swap a
+             /* SWAP
+                A3-0 swap A7-4
+                */
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "));
+             var val = this.IRAM[this.SPF[operand[1]][1]];
+             this.IRAM[this.SPF[operand[1]][1]] = ((val&0xf0) >> 4) | ((val&0x0f) << 4);
+             break;
+             
         default: break;
     }
     
@@ -1775,3 +1830,4 @@ function updateERAMvalue()
 {
   asm_exe.updateERAMvalue(document.getElementById("eadrr_search").value, document.getElementById('exvalues').value);  
 }
+
