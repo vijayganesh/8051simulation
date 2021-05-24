@@ -203,6 +203,8 @@ function asm_execute()
         // swap instruction
         "swap a", //131 swap
     
+        "mov c,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // 132
+        "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,c", // 133
     
     // Pending  jump, call, 
     
@@ -1374,6 +1376,15 @@ this.execute = function ()
              this.IRAM[this.SPF[operand[1]][1]] = ((val&0xf0) >> 4) | ((val&0x0f) << 4);
              break;
              
+         case 132: // mov c,bitposition
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),this.getBitValue(operand[1].replace('\h','')));
+             break;
+         case 133: // mov bit,c
+              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             this.set_clr_bit(operand[0].replace('\h',''),this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)));
+             break;
+             
         default: break;
     }
     
@@ -1443,7 +1454,7 @@ this.getBitValue = function (loc)
      data = (data & 1 << bitposition);
   
  }
- //console.log("THe data bit is :" + data);
+ console.log("THe data bit is :" + data);
  return (data?1:0);
  
 }
