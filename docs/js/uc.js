@@ -1155,9 +1155,9 @@ this.execute = function ()
              break;
          case 101: // cpl bitposition
              var loc= 0x0;
-             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "));
              loc = parseInt(operand[1].replace('\h','').replace(' ',''),16);
-             this.set_clr_bit(loc,~(getBitValue(loc)&0x1));
+             this.set_clr_bit(loc,~(this.getBitValue(loc)&0x1));
              break;
          case 102: // cpl c
              var val = this.getBitValue(this.SPF["psw"][1]+parseInt(7,16));
