@@ -183,32 +183,35 @@ function asm_execute()
     "rr rx",//113
     "rl ex",//114
     "^jb ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,[a-z0-9]+", // 115
-     "^jb (a|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7],[a-z0-9]+", //116
+     "^jb (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7],[a-z0-9]+", //116
      "^jbc ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,[a-z0-9]+", // 117
      "^jbc (a|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7],[a-z0-9]+", //118
-    "jc addd", //119
-    "jc a", //120
-        "jnb a", //121
-        "jnb a", //122
-        "jnc a", //123
-        "jnc a", //124
-        "jnz a", //125
-        "jnz a", // 126
-        "jz a", //127
-        "jz a", //128
+    "^jc [a-z][a-z0-9]+$", //119
+    "jc xr", //120
+        "^jnb ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,[a-z0-9]+", //121
+        "^jnb (acc|p[0-3]|tcon|scon|ie|ip|b|psw).[0-7],[a-z0-9]+", //122
+        "^jnc [a-z][a-z0-9]+$", //123
+        "jnc x", //124
+        "jnz [a-z][a-z0-9]+$", //125
+        "jnz ax", // 126
+        "^jz [a-z][a-z0-9]+$", //127
+        "jz x", //128
         
-        "jc a", //129 R
-        "jc a", // 130 R
+        "^jc x[a-z][a-z0-9]+$", //129 R
+        "jc x", // 130 R
         
         // swap instruction
         "swap a", //131 swap
     
         "mov c,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // 132
         "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,c", // 133
+        "sjmp [a-z][a-z0-9]+$", // short jump 134
+        "^nop$", // No operation 135
+        "end", // Ends the simulation 136
     
     // Pending  jump, call, 
     
-    "sub a,b"
+    ""
     ];
 this.exe_msg = " ";   
     this.reg_opcode = new RegExp(this.validOPCODE.join("|"),"i");
@@ -452,7 +455,7 @@ this.execute = function ()
     
     // find which opcode  to execute
     var op_exec = this.getOpcode();
-   // console.log("The optainded exec="+op_exec + " code is " + this.line_code[this.SPF["pc"]]);
+    console.log("The optainded exec="+op_exec + " code is " + this.line_code[this.SPF["pc"]]);
     if( op_exec == -1)
         return -1;
     this.exe_msg += "Executing "+user_name +"'s line No : "+this.SPF["pc"]+" -> "+ (this.line_code[this.SPF["pc"]])+ "<br>"; 
@@ -1291,6 +1294,10 @@ this.execute = function ()
          case 115: // given bit position value
              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
              loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
+             if(loc[0] == "acc")
+            {
+                loc[0] = "a";
+            }
              if(this.getBitValue(loc))
              {
                  // change the pc value 
@@ -1365,7 +1372,119 @@ this.execute = function ()
                  // Do nothing 
              }
              break;
-             // Pending Jump Instruction
+             // Pending Jump Instructions, JNB,JNC,JC
+         case 119: // jc label
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "));
+              loc = this.SPF["psw"][1]+parseInt(7,16);
+             if(this.getBitValue(loc))
+             {
+                 // change the pc value 
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[operand[1]];
+             }
+             else
+             {
+                 // Do nothing 
+             }
+             
+             break;
+         case 121: // jnb bit,label
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             loc = operand[0].split(".");
+             loc = this.SPF[loc[0]][1]+parseInt(loc[1],16);
+           //  console.log("The location in jb "+loc);
+             if(!this.getBitValue(loc))
+             {
+                 // change the pc value 
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[operand[1]];
+               //  console.log("The Data is " + this.pc_inc + "and label is " + operand[1]+ " ");
+             }
+             else
+             {
+                 // Do nothing 
+             }
+             
+             break;
+         case 122:
+             /*
+              * 
+              * jnb spf 
+              * */
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             loc = parseInt(operand[0].replace('\h','').replace(' ',''),16);
+             if(loc[0] == "acc")
+            {
+                loc[0] = "a";
+            }
+             if(!this.getBitValue(loc))
+             {
+                 // change the pc value 
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[operand[1]];
+             }
+             else
+             {
+                 // Do nothing 
+             }
+             break;
+             
+         case 123: // jump not carry location 
+              operand = ((this.line_code[this.SPF["pc"]]).split(" "));
+              loc = this.SPF["psw"][1]+parseInt(7,16);
+             if(!this.getBitValue(loc))
+             {
+                 // change the pc value 
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[operand[1]];
+             }
+             else
+             {
+                 // Do nothing 
+             }
+             break;
+             
+         case 125: 
+             /* JNZ label
+              * 
+              * 
+              * JNZ
+                PC = PC + 2
+                IF A <> 0
+                PC = PC + offset
+              * 
+              */
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "));
+              loc = this.SPF["a"][1];
+             if(!this.IRAM[loc])
+             {
+                 // change the pc value 
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[operand[1]];
+             }
+             else { /* Do nothing */   }
+             break;
+             
+         case 127: 
+                /* JNZ label
+              * 
+              * 
+              * JNZ
+                PC = PC + 2
+                IF A <> 0
+                PC = PC + offset
+              * 
+              */
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "));
+              loc = this.SPF["a"][1];
+             if(this.IRAM[loc])
+             {
+                 // change the pc value 
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[operand[1]];
+             }
+             else { /* Do nothing */   }
+             break;
              //swap instruction
          case 131: // swap a
              /* SWAP
@@ -1384,7 +1503,21 @@ this.execute = function ()
               operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
              this.set_clr_bit(operand[0].replace('\h',''),this.getBitValue(this.SPF["psw"][1]+parseInt(7,16)));
              break;
-             
+         case 134: // sjmp label
+             /*
+              * 
+              *  Keeping the same as that of jmp if required need to modify
+              * */
+             operand =  (this.line_code[this.SPF["pc"]]).split(" ");
+            this.pc_inc_flag = 1;
+            this.pc_inc = this.labels[operand[1]];
+             break;
+         case 135: // No operation
+             break;
+         case 136: // END of simulation
+             this.debugStop();
+             this.stop();
+             break;
         default: break;
     }
     
@@ -1659,7 +1792,7 @@ this.run = function ()
   if(this.getCode())
   {
    // Write the logic to stop the eecution
-     // console.log("Return at first getcode");
+     console.log("Return at first getcode");
    return -1;
   }
   document.getElementById("stop").disabled = false;
@@ -1827,6 +1960,7 @@ this.resetIRegister = function ()
      this.IRAM[i] = 0;
 this.SPF["pc"] = 0;
 this.exe_msg = " ";
+this.stop_flag = 0;
 
 this.update();
 }
