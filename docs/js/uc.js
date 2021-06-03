@@ -209,9 +209,12 @@ function asm_execute()
         "^nop$", // No operation 135
         "end", // Ends the simulation 136
     
+      "add a,b", // add a and b 137
+      "addc a,b", // addc a,b 138
+       "subb a,b", // sub a,b 139
+        
     // Pending  jump, call, 
     
-    ""
     ];
 this.exe_msg = " ";   
     this.reg_opcode = new RegExp(this.validOPCODE.join("|"),"i");
@@ -1154,7 +1157,7 @@ this.execute = function ()
         // Complement 
          case 100: // cpl a or p0-3
              operand =  ((this.line_code[this.SPF["pc"]]).split(" "));
-             this.IRAM[this.SPF[operand[1]][1]] = ~this.IRAM[this.SPF[operand[1]][1]];
+             this.IRAM[this.SPF[operand[1]][1]] = ~(this.IRAM[this.SPF[operand[1]][1]])&0xff;
              break;
          case 101: // cpl bitposition
              var loc= 0x0;
@@ -1194,7 +1197,7 @@ this.execute = function ()
              var rem = 0;
              if(b != 0)
              {
-                 q = a/b;
+                 q = parseInt(a/b) & 0xff;
                  rem = a%b;
                  this.set_clr_bit(this.SPF["psw"][1]+parseInt(2,16),0);
              }
@@ -1517,6 +1520,28 @@ this.execute = function ()
          case 136: // END of simulation
              this.debugStop();
              this.stop();
+             break;
+         case 137:
+              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[this.SPF[operand[1]][1]];
+            this.opcode_Add(data_a,data_b,0);
+             break;
+         case 138:
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[this.SPF[operand[1]][1]];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_Add(data_a,data_b,data_c);
+             
+             break;
+         case 139:
+              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            var data_a = this.IRAM[this.SPF["a"][1]];
+            var data_b = this.IRAM[this.SPF[operand[1]][1]];
+            var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
+            this.opcode_sub(data_a,data_b,data_c);
+             
              break;
         default: break;
     }
