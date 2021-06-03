@@ -206,7 +206,7 @@ function asm_execute()
         "mov c,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // 132
         "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,c", // 133
         "sjmp [a-z][a-z0-9]+$", // short jump 134
-        "^nop$", // No operation 135
+        "^nop", // No operation 135
         "end", // Ends the simulation 136
     
       "add a,b", // add a and b 137
@@ -214,7 +214,7 @@ function asm_execute()
        "subb a,b", // sub a,b 139
         
     // Pending  jump, call, 
-    
+    ""
     ];
 this.exe_msg = " ";   
     this.reg_opcode = new RegExp(this.validOPCODE.join("|"),"i");
