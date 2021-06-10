@@ -212,6 +212,10 @@ function asm_execute()
       "add a,b", // add a and b 137
       "addc a,b", // addc a,b 138
        "subb a,b", // sub a,b 139
+       "cjne @r[0-1],#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|([0-9]{1,3}$))),[a-z][a-z0-9]+$", // 140
+    "cjne r[0-7],#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|([0-9]{1,3}$))),[a-z][a-z0-9]+$", // 141
+    "cjne a,#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|([0-9]{1,3}$))),[a-z][a-z0-9]+$", // 142
+    "cjne (r[0-7]|a),((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,[a-z][a-z0-9]+$", // 143 direct offset
         
     // Pending  jump, call, 
     ""
@@ -1541,6 +1545,148 @@ this.execute = function ()
             var data_b = this.IRAM[this.SPF[operand[1]][1]];
             var data_c = (this.IRAM[this.SPF["psw"][1]] & 0x80) ? 1:0;
             this.opcode_sub(data_a,data_b,data_c);
+             
+             break;
+         case 140:
+             /*
+              * PC = PC + 3
+                IF (@Ri) <> immedate
+                PC = PC + offset
+                IF (@Ri) < immediate
+                C = 1
+                ELSE
+                C = 0
+              * 
+              * 
+              */
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             var loc = operand[0].replace('@','');
+             var offsets = operand[2];
+             var val_test = this.IRAM[this.IRAM[parseInt(this.SPF[loc][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)]];
+             var imm_value = this.convertValuedecimal((operand[1].replace('#','')));
+             console.log("The Value are " + val_test +" imm = " + imm_value + " offset = "+offsets);
+             if(val_test < imm_value)
+             {
+              // set carry flag   
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),1);
+             }
+             else if( val_test > imm_value)
+             {
+              // Clear carry
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
+                 
+             }
+             else
+             {
+                 // Do nothing
+             }
+            
+             
+             break;
+         case 141:// CJNE rn, immediate, offset
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             var loc = operand[0];
+             var offsets = operand[2];
+             var val_test = 0;
+            // if(loc == "r0" || loc == "r1" || loc == "r2" || loc == "r3" || loc == "r4" || loc == "r5" || loc == "r6" || loc == "r7")
+             {   
+             val_test = this.IRAM[parseInt(this.SPF[loc][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)];
+             }
+            // else
+             //{
+              //   val_test = this.IRAM[this.SPF[loc][1]];
+            // }
+             var imm_value = this.convertValuedecimal((operand[1].replace('#','')));
+             console.log("The Value are " + val_test +" imm = " + imm_value + " offset = "+offsets);
+             if(val_test < imm_value)
+             {
+              // set carry flag   
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),1);
+             }
+             else if( val_test > imm_value)
+             {
+              // Clear carry
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
+                 
+             }
+             else
+             {
+                 // Do nothing
+             }
+             break;
+         case 142: // CJNE A, immediate
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             var loc = operand[0];
+             var offsets = operand[2];
+             var val_test = this.IRAM[parseInt(this.SPF[loc][1],16)];
+             var imm_value = this.convertValuedecimal((operand[1].replace('#','')));
+             console.log("The Value are " + val_test +" imm = " + imm_value + " offset = "+offsets);
+             if(val_test < imm_value)
+             {
+              // set carry flag   
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),1);
+             }
+             else if( val_test > imm_value)
+             {
+              // Clear carry
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
+                 
+             }
+             else
+             {
+                 // Do nothing
+             }
+             break;
+         case 143: // CJNE rn,direct,offset 
+             operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+             var loc = operand[0];
+             var offsets = operand[2];
+             //var val_test = this.IRAM[parseInt(this.SPF[loc][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)];
+             var imm_value = this.IRAM[parseInt(operand[1].replace('h',''),16)];
+             var val_test = 0;
+             if(loc == "r0" || loc == "r1" || loc == "r2" || loc == "r3" || loc == "r4" || loc == "r5" || loc == "r6" || loc == "r7")
+             {   
+             val_test = this.IRAM[parseInt(this.SPF[loc][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8),16)];
+             }
+             else
+             {
+                 val_test = this.IRAM[this.SPF[loc][1]];
+             }
+             
+             
+             
+             console.log("143 The Value are " + val_test +" imm = " + imm_value + " offset = "+offsets+ " Dir = "+operand[1]);
+             if(val_test < imm_value)
+             {
+              // set carry flag   
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),1);
+             }
+             else if( val_test > imm_value)
+             {
+              // Clear carry
+                 this.pc_inc_flag = 1;
+                 this.pc_inc = this.labels[offsets];
+                 this.set_clr_bit(this.SPF["psw"][1]+parseInt(7,16),0);
+                 
+             }
+             else
+             {
+                 // Do nothing
+             }
              
              break;
         default: break;
