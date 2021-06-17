@@ -47,15 +47,15 @@ function asm_execute()
     this.pc_inc = 1;
     this.pc_inc_flag = 0;
     
-    
+
      this.validOPCODE = [
      //"mov a,#([a-fA-F0-9]{2})H", // done 0
-    "^mov ((a)|(b)|p[0-3]),#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|([0-9]{1,3}$)))$",
+    "^mov ((a)|(b)|p[0-3]|psw),#(([+-]?)((((0[a-fA-f][a-fA-F0-9]H)|(([0-9]?[0-9a-fA-F]H))))|([0-9]{1,3}$)))$",
      "mov (a|b|dpl|dph|p[0-3]),(r[0-7]|a|b|dph|dpl|p[0-3])",  // done 1
      "mov r[0-7],(a|b|p[0-3]|dph|dpl)", // done 2
      "mov r[0-7],#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //done mov r[0-7] immediate 3
      "mov r[0-7],r[0-7]",// done mov register, register 4
-     "mov a,([0-9a-fA-F]){2}H", // done mov a,direct address  5
+     "mov (a|b|psw|p[0-3]),([0-9a-fA-F]){2}H", // done mov a,direct address  5
      "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,#[+-]?((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // done mov dir,data 6
      "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", //  done mov dir,dir 7
      "mov r[0-7],((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // done mov r[0-7], direct 8
@@ -504,8 +504,9 @@ this.execute = function ()
             this.IRAM[this.SPF[operand[0]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)] = this.IRAM[this.SPF[operand[1]][1]+(((this.IRAM[this.SPF["psw"][1]]&0x18)>>3)*8)]; 
             break;
         case 5: // mov a,direct
-            operand =  (this.line_code[this.SPF["pc"]]).split(",");
-            this.IRAM[this.SPF["a"][1]] = (this.IRAM[parseInt(operand[1].replace('\h',''),16)]);
+            //operand =  (this.line_code[this.SPF["pc"]]).split(",");
+            operand =  ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
+            this.IRAM[this.SPF[operand[0]][1]] = (this.IRAM[parseInt(operand[1].replace('\h',''),16)]);
            // console.log("The data is operand 1 is "+operand[1].replace('\h',''));
           //  console.log("The value to update is "+parseInt(this.IRAM[operand[1].replace('\h','')],16));
             break;
