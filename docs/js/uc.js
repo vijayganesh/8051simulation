@@ -205,7 +205,7 @@ function asm_execute()
     
         "mov c,((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H", // 132
         "mov ((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,c", // 133
-        "sjmp [a-z][a-z0-9]+$", // short jump 134
+        "(s|a|l)jmp [a-z][a-z0-9]+$", // short jump 134
         "^nop", // No operation 135
         "end", // Ends the simulation 136
     
@@ -218,6 +218,8 @@ function asm_execute()
     "cjne (r[0-7]|a),((0[a-fA-f][a-fA-F0-9])|(([0-9][0-9a-fA-F])))H,[a-z][a-z0-9]+$", // 143 direct offset
         
     // Pending  jump, call, 
+    "(a|l)call [a-z][a-z0-9]+$",
+    "ret",
     ""
     ];
 this.exe_msg = " ";   
@@ -264,6 +266,7 @@ this.prefix = "0x";
 this.radix = 16;
 this.error = "";
 this.stop_flag = 0;
+this.stop_max = 500;
 //this.pc = 0;
 //this.reg_bank = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]];
 
@@ -1627,9 +1630,9 @@ this.execute = function ()
              operand = ((this.line_code[this.SPF["pc"]]).split(" "))[1].split(",");
              var loc = operand[0];
              var offsets = operand[2];
-             var val_test = this.IRAM[parseInt(this.SPF[loc][1],16)];
+             var val_test = this.IRAM[this.SPF[loc][1]];
              var imm_value = this.convertValuedecimal((operand[1].replace('#','')));
-             console.log("The Value are " + val_test +" imm = " + imm_value + " offset = "+offsets);
+             console.log("loc = "+loc+ " The Value are " + val_test +" imm = " + imm_value + " offset = "+offsets);
              if(val_test < imm_value)
              {
               // set carry flag   
@@ -1690,11 +1693,55 @@ this.execute = function ()
              }
              
              break;
-        default: break;
+         case 144:
+             // "(a|l)call [a-z][a-z0-9]+$",
+             operand =  (this.line_code[this.SPF["pc"]]).split(" ");
+            this.pc_inc_flag = 1;
+            this.pc_inc = this.labels[operand[1]];
+            // Store the current location in stack 
+            var curr_Address = (this.SPF["pc"] + 1) & 0xffff;
+            this.push_data(curr_Address & 0xff);
+            this.push_data((curr_Address & 0xff00) >> 8);
+            
+             
+             break;
+             
+         case 145: // return statement
+             var pc = 0;
+              pc = (this.pop_data() <<8) & 0xff00 ;
+              pc = pc | this.pop_data();
+              this.pc_inc_flag = 1;
+              this.pc_inc = pc;
+             break;
+        default:
+            // Need to throw error if reached 
+            if(this.line_code[this.SPF["pc"]] == "")
+            {
+            }
+            else
+            {
+            this.exe_msg += " <--- check the code ";
+            //document.getElementById("Error_msg").innerHTML  = this.Error_msg;
+            document.getElementById("Error_msg").innerHTML = this.exe_msg;
+    document.getElementById("Error_msg").scrollTo(0,document.getElementById("Error_msg").scrollHeight);
+       this.stop_flag = this.stop_max+1;
+            }
+            break;
     }
     
  // Set priority update always   
  this.setPSWpriority();   
+}
+this.push_data = function (data)
+{
+    this.SPF["sp"] = this.SPF["sp"] + 1;
+            this.IRAM[this.SPF["sp"]] = data;
+}
+this.pop_data = function ()
+{
+    var data = this.IRAM[this.SPF["sp"]];
+    this.SPF["sp"] = this.SPF["sp"] - 1;
+    return data;
 }
 this.getBitValue = function (loc)
 {
@@ -1973,7 +2020,7 @@ this.run = function ()
   while(this.SPF["pc"] <= this.line_length-1)
   {
      // console.log("Inside exec while loop");
-      if(this.stop_flag > 100)
+      if(this.stop_flag > this.stop_max)
       {
           document.getElementById("asm_code").disabled = false;
           return -1;
@@ -1993,7 +2040,7 @@ this.run = function ()
 this.stop = function()
 {
   this.SPF["pc"] = this.line_length +2;
-  this.stop_flag = 101;
+  this.stop_flag = this.stop_max;
   document.getElementById("stop").disabled = true;
   document.getElementById("run").disabled = false;
   
